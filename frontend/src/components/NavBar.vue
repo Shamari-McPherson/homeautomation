@@ -11,7 +11,18 @@
                             <RouterLink class="route" :to="{ name: 'Home' }" >
                                 <VBtn class="text-subtitle-2"   density="compact"  color="primary" :variant="(route.name == 'Home')? 'tonal':'text'">Home</VBtn>
                             </RouterLink>
+                            
+                            <RouterLink class="route" to="/control">
+                                 <VBtn class="text-subtitle-2" density="compact" color="primary" :variant="(route.name == 'Control')? 'tonal':'text'">Control</VBtn>
+                            </RouterLink>
 
+                            <RouterLink class="route" to="/dashboard" >
+                                <VBtn class="text-subtitle-2"   density="compact"  color="primary" :variant="(route.name == 'Dashboard')? 'tonal':'text'">Dashboard</VBtn>
+                            </RouterLink>
+                            
+                            <RouterLink class="route" to="/analysis">
+                                 <VBtn class="text-subtitle-2" density="compact" color="primary" :variant="(route.name == 'Analysis')? 'tonal':'text'">Analysis</VBtn>
+                            </RouterLink>
                             <!-- Add Links Below --> 
 
                         </VCol>
