@@ -32,10 +32,11 @@ class MQTT:
         self.client.on_disconnect   = self.on_disconnect
         self.client.on_subscribe    = self.on_subscribe
 
-
         # REGISTER CALLBACK FUNCTION FOR EACH TOPIC
         self.client.message_callback_add("620152241", self.update)
         self.client.message_callback_add("620152241_pub", self.toggle)
+        self.client.message_callback_add("620152241_sub", self.toggle)
+
 
         # ADD MQTT SERVER AND PORT INFORMATION BELOW
         self.client.connect_async("www.yanacreations.com", 1883, 60)
@@ -104,8 +105,6 @@ class MQTT:
 
         except Exception as e:
             print(f"MQTT: toggle Error - {str(e)}")
-
-
 
      
 

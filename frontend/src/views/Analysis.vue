@@ -1,4 +1,4 @@
-<template>
+ <template>
     <v-container fluid align=" center" color=" surface" class="vg-surface" >
       <v-row class="row1" max-width="1200px" justify="center" align="center" padding="1">
           <v-col class="col col1" >
@@ -8,7 +8,7 @@
                   <v-text-field label="End date" type="Date" density="compact" solo-inverted class="mr-5" max-width="300px" flat v-model="end"></v-text-field>
                   
                   <v-spacer></v-spacer>
-                  <VBtn @click="updateLineCharts(); updateCards(); updateHistogramCharts();updateScatter(); " text="Analyze" color="surface" tonal></VBtn>
+                  <VBtn @click="updateLineCharts(); updateCards(); " text="Analyze" color="surface" tonal></VBtn>
                   </v-sheet> 
           </v-col>
 
@@ -16,7 +16,7 @@
               <v-card title="Average" width="250" outlines color="surface"  density="compact" rounded="lg" border subtitle="For the selected period">
                   <v-card-item align="center" >
                       <span class="text-h1" >
-                          {{ reserve }}
+                          {{ avg.value}}
                         <span class="text-caption">GaL</span>
                       </span>
                   </v-card-item>
@@ -75,8 +75,9 @@ var start = ref(null);
 var end = ref(null);
 const WaterManagLine = ref(null); // Chart object
 const HeighWaterLine = ref(null); // Chart object
-const average= ref(null);
-var averg= reactive({ value: 0 });
+var average= ref(null);
+var avg= reactive({ value: 0 });
+// var reserve= reactive({ value: 0 });
 // FUNCTIONS
 
 const CreateCharts = async () => {
@@ -131,10 +132,10 @@ const CreateCharts = async () => {
       title: { text: "Water Height", style: { color: "#000000" } },
       labels: { format: "{value} in" },
     },
-    // tooltip: {
-    //   shared: true,
-    //   pointFormat: "Temperature: {point.x} °C <br/> Heat Index: {point.y} °C",
-    // },
+    tooltip: {
+      shared: true,
+      pointFormat: "Water Height {point.x} °C ",
+    },
     series: [
       {
         name: "Analysis",
@@ -165,62 +166,93 @@ onBeforeUnmount(() => {
   Mqtt.unsubcribeAll();
 });
 
-const updateLineCharts = async () => {
-  if (!!start.value && !!end.value) {
-    // Convert output from Textfield components to 10 digit timestamps
-    let startDate = new Date(start.value).getTime() / 1000;
-    let endDate = new Date(end.value).getTime() / 1000;
-    // Fetch data from backend
-    const data = await AppStore.getAllInRange(startDate, endDate);
-    // Create arrays for each plot
-    let reserve = [];
-
-    // Iterate through data variable and transform object to format recognized by highcharts
-    data.forEach((row) => {
-        reserve.push({ x: row.timestamp * 1000,y: parseFloat(row.reserve.toFixed(2)),});
-   });
-    // Add data to Temperature and Heat Index chart
-    WaterManagLine.value.series[0].setData(reserve);
-
-  }
-};
-
-const updateScatter = async () => {
-  if (!!start.value && !!end.value) {
-    // Convert output from Textfield components to 10 digit timestamps
-    let startDate = new Date(start.value).getTime() / 1000;
-    let endDate = new Date(end.value).getTime() / 1000;
-    // Fetch data from backend
-    const data = await AppStore.getAllInRange(startDate, endDate);
-    // Create arrays for each plot
-    let scatterPoints1 = [];
-    // Iterate through data variable and transform object to format recognized by highcharts
-    data.forEach((row) => {
-      scatterPoints1.push({
-        x: parseFloat(row.radar.toFixed(2)),
-        y: parseFloat(row.waterheight.toFixed(2)),
-      });
-    });
-    // Add data to Temperature and Heat Index chart
-    HeighWaterLine.value.series[0].setData(scatterPoints1);
-  }
-};
-
-
-const updateCards = async () => {
-    // Retrieve Min, Max, Avg, Spread/Range
-    if(!!start.value && !!end.value){
+// const updateCards = async () => {
+//     //  Avg, Spread/Range
+//     if(!!start.value && !!end.value){
     
-        // 1. Convert start and end dates collected fron TextFields to 10 digit timestamps
-        let startDate = new Date(start.value).getTime() / 1000;
-        let endDate = new Date(end.value).getTime() / 1000;
+//         // 1. Convert start and end dates collected fron TextFields to 10 digit timestamps
+//         let startDate = new Date(start.value).getTime() / 1000;
+//         let endDate = new Date(end.value).getTime() / 1000;
         
-        // 2. Fetch data from backend by calling the API functions
-        const rese = await AppStore.calculate_avg_reserve(startDate, endDate);
-        // Update the reserve variable with the average value
-        reserve = rese.avg.toFixed(1);
-      }
-  };    
+//         // 2. Fetch data from backend by calling the API functions
+//         const rese = await AppStore.calculate_avg_reserve(startDate, endDate);
+//         // Update the reserve variable with the average value
+          
+//         console.log(rese);
+//         reserve.value = rese[0].reser.toFixed(1)*10;
+
+//       }
+//   }; 
+
+  const updateCards = async () => {
+  if (!!start.value && !!end.value) {
+
+    // 1. Convert start and end dates collected fron TextFields to 10 digit timestamps
+    let startDate = new Date(start.value).getTime() / 1000;
+    let endDate = new Date(end.value).getTime() / 1000;
+    
+    // 2. Fetch data from backend by calling the API functions
+    const average = await AppStore.calculate_avg_reserve(startDate, endDate);
+    
+    console.log(average);
+    avg.value = average[0].average.toFixed(1)*10;
+   
+  }
+};
+
+
+const updateLineCharts = async () => {
+    if (!!start.value && !!end.value) {
+      // Convert output from Textfield components to 10 digit timestamps
+      let startDate = new Date(start.value).getTime() / 1000;
+      let endDate = new Date(end.value).getTime() / 1000;
+      // Fetch data from backend
+      const data = await AppStore.getAllInRange(startDate, endDate);
+      // Create arrays for each plot
+      let reserve = [];
+      let waterheight = [];
+
+   
+      // Iterate through data variable and transform object to format recognized by highcharts
+     
+      data.forEach((row) => {
+        reserve.push({x: row.timestamp * 1000,y: parseFloat(row.reserve.toFixed(2)),});
+        waterheight.push({x: row.timestamp * 1000,y: parseFloat(row.waterheight.toFixed(2)),});
+        
+      });
+      console.log(reserve);
+      console.log(waterheight);
+      // Add data to Temperature and Heat Index chart
+      WaterManagLine.value.series[0].setData(reserve);
+      HeighWaterLine.value.series[0].setData(waterheight);
+
+    }
+  };
+
+
+// const updateScatter = async () => {
+//   if (!!start.value && !!end.value) {
+//     // Convert output from Textfield components to 10 digit timestamps
+//     let startDate = new Date(start.value).getTime() / 1000;
+//     let endDate = new Date(end.value).getTime() / 1000;
+//     // Fetch data from backend
+//     const data = await AppStore.getAllInRange(startDate, endDate);
+//     // Create arrays for each plot
+//     let scatterPoints1 = [];
+//     // Iterate through data variable and transform object to format recognized by highcharts
+//     data.forEach((row) => {
+//       scatterPoints1.push({
+//         x: parseFloat(row.waterheight.toFixed(2)),
+//         y: parseFloat(row.radar.toFixed(2)),
+//       });
+//     });
+//     // Add data to Temperature and Heat Index chart
+//     HeighWaterLine.value.series[0].setData(scatterPoints1);
+//   }
+// };
+
+
+   
 </script>
 
 <style scoped>
@@ -252,4 +284,5 @@ const updateCards = async () => {
 Figure {
   border: 2px solid black;
 }
-</style>
+</style> 
+

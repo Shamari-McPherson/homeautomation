@@ -3,7 +3,7 @@
         <v-row jusify="center" max width = "1200px;">
             <v-col color="surface" elevation="14" max-width="800" width="100%">
                 <v-card loading class="" title="Combination" color="surface" subtitle="Enter yout four digit passcode"  flat>
-                    <v-otp-input focus-all :length="4"></v-otp-input>
+                    <v-otp-input focus-all :length="4" v-model="passcode"></v-otp-input>
                 </v-card>
             </v-col>
         </v-row>
@@ -11,7 +11,7 @@
         <v-row>
             <v-col  align ="center" >
                 <v-card class="bg-background" justify="center" flat>
-                  <v-btn color="primary" elevation="3" text="Submit" @click=""> </v-btn>
+                  <v-btn color="primary" elevation="3" text="Submit" @click="readCode()"> </v-btn>
                 </v-card>
             </v-col>
         </v-row>
@@ -31,10 +31,9 @@ import { useMqttStore } from "@/store/mqttStore"; // Import Mqtt Store
 // VARIABLES
 const router      = useRouter();
 const route       = useRoute();  
-const passcode = ref([""]);
+var passcode = ref("0000");
 const Mqtt = useMqttStore();
 const AppStore = useAppStore();
-
 // FUNCTIONS
 onMounted(()=>{
     // THIS FUNCTION IS CALLED RIGHT BEFORE THIS COMPONENT IS UNMOUNTED
@@ -42,7 +41,7 @@ onMounted(()=>{
     setTimeout( ()=>{
     // Subscribe to each topic
     Mqtt.subscribe("620152241");
-    Mqtt.subscribe("20152241_sub");
+    Mqtt.subscribe("620152241_sub");
     },3000);
 });
 
@@ -72,12 +71,11 @@ const updateGauge = async () => {
   }
 };
 
-function readCode() {
-    // Code to read passcode here
-    console.log(passcode.value);
-    AppStore.getSetCombination(passcode.value);
-    
-}
+
+
+const readCode = async () => {
+  const foo = await AppStore.getSetCombination(passcode.value);
+};
 </script>
 
 
@@ -87,3 +85,4 @@ function readCode() {
 
 </style>
   
+

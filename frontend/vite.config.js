@@ -49,7 +49,7 @@ export default defineConfig({
     host:true, 
     proxy: {
       '^/api*': { 
-        target: 'http://192.168.100.194:8080/' ,
+        target: 'http://:8080/' , // mona ip: 172.16.193.152
        changeOrigin: false,
     },   
   }

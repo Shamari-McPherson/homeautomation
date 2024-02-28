@@ -1,45 +1,51 @@
-<template>
-   <v-container fluid>
-    <v-row max-width="1200px" justify="start" align="center">
-       <v-col cols="3"  align='right' >
-        <v-sheet class="pa-4">
-            <v-card flat >
-                <v-slider v-model="radarValue" max="100" thumb-label direction="vertical" label="Height(in)" track-size="60" color="purple"></v-slider>
-            </v-card>
+ <template>
+    <v-container >
+     <v-row max-width="1200px" justify="start" align="center">
+        <v-col cols="3"  align='right' >
+         <v-sheet class="pa-4">
+             <v-card flat >
+                 <v-slider v-model="radarValue" max="95" thumb-label direction="vertical" label="Height(in)" track-size="60" color="purple"></v-slider>
+             </v-card>
+          </v-sheet>
+       </v-col>
+         <v-col class="col chart" cols="9"  align = 'left' >
+         <v-sheet class="pa-4" border max="100">
+             <v-card>
+                 <figure class="highcharts-figure">
+                 <div id="container"></div>
+             </figure>
+             </v-card>
          </v-sheet>
-      </v-col>
-        <v-col cols="8"  align = 'right' >
-        <v-sheet class="pa-4" border max="100">
-            <v-card>
-                <figure class="highcharts-figure">
-                <div id="container"></div>
-            </figure>
-            </v-card>
-        </v-sheet>
-      </v-col>
-    </v-row>
-    <v-row>
-      <v-col class="col chart" cols="6" md="8" align="left"  >
-        <v-card class="text-secondary bg-background"  color="surface" outlined>
-          <figure class="highcharts-figure">
-                <div id="container1"></div>
-            </figure>
+       </v-col>
+     </v-row>
+     <v-row>
+       <v-col class="col chart" cols="6" md="8" align="left"  >
+         <v-card class="text-secondary bg-background"  color="surface" outlined>
+           <figure class="highcharts-figure">
+                 <div id="container1"></div>
+             </figure>
+         </v-card>
+     </v-col>
+        <v-col cols="4" > 
+         <v-sheet >           
+           <v-card class="text-secondary" title="Water Level" color="surface" subtitle="Capacity Remaining" variant="tonal" flat>
+             <div id="fluid-meter"></div> 
+             <v-dialog v-model="overflowDialog" max-width="400">
+                <template v-slot:default="{ overflowDialog }">
+                    <v-card title="Overflow Detected" color="warning" background-color="primary darken-1">
+                        <v-card-actions>
+                    <v-spacer></v-spacer>
+                </v-card-actions>
         </v-card>
-    </v-col>
-       <v-col cols="3" >            
-        <v-card class="text-secondary" title="Water Level" color="surface" subtitle="Capacity Remaining" variant="tonal" flat>
-            <div id="fluid-meter"></div>         
-        </v-card>  
-      </v-col>
-    </v-row>
-     <v-dialog v-model="overflowDialog" max-width="400">
-      <v-card title="Overflow Detected">
-        <!-- <v-card-title></v-card-title> -->
-        <v-btn color="primary" @click="overflowDialog = false">Close</v-btn>
-      </v-card>
-    </v-dialog>
-  </v-container>
-</template>
+                </template>
+                </v-dialog>       
+         </v-card>
+       </v-sheet>
+       </v-col>
+     </v-row>
+ 
+   </v-container>
+ </template>
 
 <script setup>
 /** JAVASCRIPT HERE */
@@ -68,22 +74,23 @@ const Mqtt = useMqttStore();
 const AppStore = useAppStore();
 const areaGraph = ref(null); // Chart object
 const waterReserveGraph = ref(null); // Chart object
-const radarValue = ref(50);
-const point= ref(10);
+const radarValue = ref(null);
+const points= ref(10);
 const shift= ref(false);
 var fm = new FluidMeter();
+const { payload, payloadTopic } = storeToRefs(Mqtt);
 
 // Define a ref for controlling the dialog visibility
-const overflowDialog = ref(false);
+let overflowDialog = ref(false);
 
-const waterHeight= computed(()=>{
+const waterheight= computed(()=>{
     if(!!payload.value){
       return '${payload.value.waterheight.toFixed(2)} inches';
     }
     }
   );
 
-  const reServes= computed(()=>{
+  const reserve= computed(()=>{
     if(!!payload.value){
       return '${payload.value.reserves.toFixed(2)} gallons';
     }
@@ -107,7 +114,7 @@ onMounted(()=>{
     Mqtt.subscribe("620152241_sub");
     },3000);
     CreateCharts();
-    // FluidMeter();
+  
    
 });
 
@@ -116,50 +123,60 @@ onBeforeUnmount(()=>{
     // unsubscribe from all topics
     Mqtt.unsubcribeAll();});
 
-// Create fluid meter for liquid progress indicator
-  
-// var fm = new FluidMeter();
 
-function data (){
-      return {radarValue: 50}}
+// function data (){
+//       return {radarValue: 50}}
+
+           
 
 const CreateCharts = async () => {
     // TEMPERATURE CHART
      areaGraph.value = Highcharts.chart("container", {
-       chart: { zoomType: "x" },
-     title: {
-         text: "Water Reserves (10 min)",
-         align: "left",
-       },
-//       subtitle: {
-//         text: "Visualize the relationship between Temperature and Heat Index as well as revealing patterns or trends in the data",
-//       },
+      chart: { zoomType: "x",
+    animation:false },
+      title: { text: "Water Reserves(10 min)", align: "left" },
+
       yAxis: {
-         title: {
-           text: "Water level",
-           style: { color: "#000000" },
-         },
-                  labels: { format: "{value} Gal" },
-       },
+        title: {
+          text: "Water level",
+          style: { color: "#000000" },
+        },
+        labels: { format: "{value} Gal" },
+      },
   
-       xAxis: {
+      tooltip: {
+        pointFormat: "Temperature: {point.y} °C",
+      },
+      xAxis: {
+        type: "datetime",
         title: { text: "Time", style: { color: "#000000" } },
-         labels: { format: "{value} °C" },
-       },
-       tooltip: {
-         shared: true,
-        //pointFormat: "Temperature: {point.x} °C <br/> Heat Index: {point.y} °C",
-       },
-       series: [
-         {
+      },
+      tooltip: { shared: true },
+      series: [
+        {
           name: "Water",
           type: "area",
-          data: [],
-           turboThreshold: 0,
-           color: Highcharts.getOptions().colors[0],
-         },
+          data: [1],
+          turboThreshold: 0,
+          color: Highcharts.getOptions().colors[0],
+          pointWidth: 1000,
+        },
       ],
-    });
+      plotOptions: {
+        column: {
+        pointPadding: 0,
+        borderWidth: 0,
+        groupPadding: 0,
+
+        shadow: false
+    },
+              bar: {
+                horizontal: false,
+                columnWidth: '100%',
+                endingShape: 'rounded',
+              },},
+  });
+
      waterReserveGraph .value = Highcharts.chart("container1", {
        chart: { zoomType: "x" },
        title: { text: 'Water Reserves', align: 'left' },
@@ -251,44 +268,90 @@ const updateGauge = async () => {
 };
 
 // Watch for changes in the percentage variable
-watch(() => percentage, (newValue) => {
-  // Check if the percentage exceeds 100
-  if (newValue > 100) {
-    // If it exceeds 100, set overflowDialog to true to display the dialog
-    overflowDialog.value = true;
-  }
-});
+// watch(() => percentage, (newValue) => {
+//   // Check if the percentage exceeds 100
+//   if (newValue > 100) {
+//     // If it exceeds 100, set overflowDialog to true to display the dialog
+//     overflowDialog.value = true;
+//   }
+// });
 
 // WATCHERS
 // watch(payload,(data)=> {
-//     if(points.value > 0){ points.value -- ; }
+//     if(point.value > 0){ point.value -- ; }
 //     else{ shift.value = true; }
 //     const tenMinutesAgo = Date.now() - 10 * 60 * 1000; // Calculate the timestamp for 10 minutes ago
    
 //       areaGraph.value.series[0].setData([], true); // Clear previous data points
       
 //       if (data.reserve <= 0) {
-//       areaGraph.value.series[0].addPoint({y:0 ,x: data.timestamp * 1000 },true, shift.value);
-//       waterReserveGraph.value.series[0].addPoint({y:0 ,x: data.timestamp * 1000 },true, shift.value);
+//       areaGraph.value.series[0].addPoint({y:0 ,x: data.timestamp * 1000 },true, shift.valuess);
+//       waterReserveGraph.value.series[0].addPoint({y:0 ,x: data.timestamp * 1000 },true, shift.values);
 //       }else{
-//         areaGraph.value.series[0].addPoint({y:parseFloat(data.temperature.toFixed(2)) ,x: data.timestamp * 1000 },true, shift.value);
-//         rwaterReserveGraph.value.series[0].points[0].update(parseFloat(data.reserve.toFixed(2)));
+//         areaGraph.value.series[0].addPoint({y:parseFloat(data.reserve.toFixed(2)) ,x: data.timestamp * 1000 },true, shift.value);
+//         waterReserveGraph.value.series[0].points[0].update(parseFloat(data.reserve.toFixed(2)));
 //       }
-      
+
+
 // //     areaGraph.value.series[0].addPoint({y:parseFloat(data.temperature.toFixed(2)) ,x: data.timestamp * 1000 },
 // // true, shift.value);
-
-
-// //     tempHiChart.value.series[1].addPoint({y:parseFloat(data.heatindex.toFixed(2)) ,x: data.timestamp * 1000 },
-// // true, shift.value);
-
-// //     humidHiChart.value.series[0].addPoint({y:parseFloat(data.humidity.toFixed(2)) ,x: data.timestamp * 1000 }, true, shift.value); 
-// });
+//    });
 
 // watch(payload, (data) => {
-//     fm.setPercentage(data.reserve.toFixed(2));
-//    radarValue.value = data.waterHeight.toFixed(2);
-//   });
+//   fm.setPercentage(data.percentage);
+//   radarValue.value = data.radar;
+//   if (data.percentage > 100) {
+//     overflowDialog.value = true;
+//   } else {
+//     overflowDialog.value = false;
+//   }
+//   console.log(data.percentage);
+//   if (points.value > 0) {
+//     points.value--;
+//   } else {
+//     shift.value = true;
+//   }
+//   areaGraph.value.series[0].addPoint(
+//     { y: parseFloat(data.reserve.toFixed(2)), x: data.timestamp * 1000 },
+//     true,
+//     shift.value
+//   );
+//   waterReserveGraph.value.series[0].points[0].update(parseFloat(data.reserve));
+// });
+
+  watch(payload, (data) => {
+    // THIS FUNCTION IS CALLED WHEN THE VALUE OF THE VARIABLE "payload" CHANGES
+    
+    if(areaGraph.value.series[0].points.value > 550){ 
+        areaGraph.value.series[0].points.value -- ; }
+        else{ shift.value = true; }
+    
+    radarValue.value = data.radar 
+    
+    if (data.waterheight >= 77) {
+      fm.setPercentage(100);
+     
+      areaGraph.value.series[0].addPoint({ y: parseFloat(data.waterheight.toFixed(2)), x: data.timestamp*1000 }, true, shift.values); // Add new data point
+      waterReserveGraph.value.series[0].points[0].update(1000); // Add new data point
+    }
+    else if (data.waterheight <= 0) {
+      fm.setPercentage(0);
+      areaGraph.value.series[0].addPoint({ y: 0, x: data.timestamp*1000 }, true, shift.values); // Add new data point
+      waterReserveGraph.value.series[0].points[0].update(0); // Add new data point
+
+    }
+    else{
+      fm.setPercentage(data.percentage.toFixed(2));
+      areaGraph.value.series[0].addPoint({ y: parseFloat(data.waterheight.toFixed(2)), x: data.timestamp*1000  }, true, shift.values); // Add new data point
+      waterReserveGraph.value.series[0].points[0].update(parseFloat(data.reserve.toFixed(2)));}    
+
+      console.log(data.percentage);
+      if (data.percentage >=100 || data.percentage < 2) {
+        overflowDialog.value = true;
+        } else {
+            overflowDialog.value = false;
+        }
+});
 
 
 </script>
@@ -297,8 +360,8 @@ watch(() => percentage, (newValue) => {
 <style scoped>
 /** CSS STYLE HERE */
 .chart {
-  border: black;
+    border: 2px solid black;
 }
 
 </style>
-  
+
