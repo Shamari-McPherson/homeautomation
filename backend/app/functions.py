@@ -48,82 +48,85 @@ class DB:
 
 
     ####################
-    # LAB 4 FUNCTIONS  #
+    # DATABASE UTIL FUNCTIONS  #
     ####################
     
-    # 1. CREATE FUNCTION TO INSERT DATA IN TO THE RADAR COLLECTION
+    # 1. CREATE FUNCTION TO INSERT DATA IN TO THE COLLECTION
 
-    def insert_data(self, data):
-        ''' Insert data into the radar collection '''
+    def addUpdate(self, data):
+        '''ADD/UPDATE DOCUMENT IN TO THE COLLECTION'''
         try:
-            # Insert data into the radar collection
-            remotedb = self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
-            result = remotedb.ELET2415.radar.insert_one(data)
+            remotedb = self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password, self.server, self.port), tls=self.tls)
+            result = remotedb.ELET2415.station.insert_one(data)
         except Exception as e:
             msg = str(e)
-            print("insertData Error: ", msg)    
+            if "duplicate" not in msg:
+                print("addUpdate error ", msg)
+            return False
         else:
-            return result
-    
-    # 2. CREATE FUNCTION TO RETRIEVE ALL DOCUMENTS FROM RADAR COLLECT BETWEEN SPECIFIED DATE RANGE. MUST RETURN A LIST OF DOCUMENTS
-    def getAllRange(self,start, end):
-        
-        try:
-            start = int(start)
-            end = int(end)
-        # Retrieve all documents from the radar collection between the specified date range
-            remotedb = self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
-            result = remotedb.ELET2415.radar.find({'$and': [{'timestamp': {'$gte': start, '$lte': end}}, {'reserve': {'$gte': 0}}]}, {'_id': False, 'timestamp': True, 'reserve': True, 'waterheight': True})
-        except Exception as e:
-            msg = str(e)
-            print("retrieveData Error: ", msg)
-        else:
-            return result
+            return True
 
-
-    # 3. CREATE A FUNCTION TO COMPUTE THE ARITHMETIC AVERAGE ON THE 'reserve' FEILED/VARIABLE, USING ALL DOCUMENTS FOUND BETWEEN SPECIFIED START AND END TIMESTAMPS. RETURNS A LIST WITH A SINGLE OBJECT INSIDE
-    def calculate_avg_reserve(self,start,end): 
+    def getAllInRange(self,start, end):
+        '''RETURNS A LIST OF OBJECTS. THAT FALLS WITHIN THE START AND END DATE RANGE'''
         try:
             start = int(start)
             end = int(end)
             remotedb 	= self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
-            result      = list(remotedb.ELET2415.radar.aggregate([ { '$match': { 'timestamp': { '$gte': start, '$lte': end } } }, { '$group': { '_id': None, 'average': { '$avg': '$reserve' } } }, { '$project': { '_id': 0 } } ]))
+            result      = list(remotedb.ELET2415.station.find({'timestamp': {'$gte': start, '$lte': end}},{'_id': 0}).sort('timestamp', 1))
         except Exception as e:
             msg = str(e)
-            print("calculate_avg_reserve ",msg)            
+            print("getAllInRange error ",msg)            
+        else:                  
+            return result
+       
+        
+
+    def humidityMMAR(self,start, end):
+        '''RETURNS MIN, MAX, AVG AND RANGE FOR HUMIDITY. THAT FALLS WITHIN THE START AND END DATE RANGE'''
+        try:
+            start = int(start)
+            end = int(end)
+            remotedb 	= self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
+            result = list(remotedb.ELET2415.station.aggregate([{'$match': {'timestamp': {'$gte': start, '$lte': end}}}, {'$group': {'_id':0, 'humidity': {'$push': '$$ROOT.humidity'}}}, {'$project': {'max': {'$max': '$humidity'}, 'min': {'$min': '$humidity'}, 'avg': {'$avg': '$humidity'}, 'range': {'$subtract': [{'$max': '$humidity'}, {'$min': '$humidity'}]}}}]))
+
+           
+        except Exception as e:
+            msg = str(e)
+            print("humidityMMAS error ",msg)            
+        else:                  
+            return result
+        
+    def temperatureMMAR(self,start, end):
+        '''RETURNS MIN, MAX, AVG AND RANGE FOR TEMPERATURE. THAT FALLS WITHIN THE START AND END DATE RANGE'''
+        try:
+            start = int(start)
+            end = int(end)
+            remotedb 	= self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
+            
+            result = list(remotedb.ELET2415.station.aggregate([{ '$match': { 'timestamp': { '$gte': start, '$lte': end } } }, { '$group': { '_id': 0, 'temperature': { '$push': '$$ROOT.temperature' } } }, { '$project': { 'max': { '$max': '$temperature' }, 'min': { '$min': '$temperature' }, 'avg': { '$avg': '$temperature' }, 'range': { '$subtract': [ { '$max': '$temperature' }, { '$min': '$temperature' } ] } } } ]))
+        except Exception as e:
+            msg = str(e)
+            print("temperatureMMAS error ",msg)            
+        else:                 
+            return result
+
+
+    def frequencyDistro(self,variable,start, end):
+        '''RETURNS THE FREQUENCY DISTROBUTION FOR A SPECIFIED VARIABLE WITHIN THE START AND END DATE RANGE'''
+        try:
+            start = int(start)
+            end = int(end)
+            remotedb 	= self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
+            result = list(remotedb.ELET2415.station.aggregate([{'$match': {'timestamp': { '$gte': start, '$lte': end}}},{'$bucket': {'groupBy': f"${variable}",'boundaries': [0, 20, 40, 60, 80, 100],'default': 'outliers','output': {'count': { '$sum': 1 }}}}]))
+
+        except Exception as e:
+            msg = str(e)
+            print("frequencyDistro error ",msg)            
         else:                  
             return result
 
-
-
     
-    # 4. CREATE A FUNCTION THAT INSERT/UPDATE A SINGLE DOCUMENT IN THE 'code' COLLECTION WITH THE PROVIDED PASSCODE
-    def update_code(self,code):
-        """UPDATES PASSCODE IN THE DATABASE"""
-        try:
-            remotedb 	= self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
-            result = remotedb.ELET2415.code.find_one_and_update({"type":"passcode"},{'$set': {"type":"passcode","code":code}},{'_id':0},upsert=True)
-            #result = remotedb.ELET2415.code.find({"type":"passcode"})
-        except Exception as e:
-            msg = str(e)
-            print("update_code error ",msg)      
-        return result    
     
-   
-    
-    # 5. CREATE A FUNCTION THAT RETURNS A COUNT, OF THE NUMBER OF DOCUMENTS FOUND IN THE 'code' COLLECTION WHERE THE 'code' FEILD EQUALS TO THE PROVIDED PASSCODE.
-    #    REMEMBER, THE SCHEMA FOR THE SINGLE DOCUMENT IN THE 'code' COLLECTION IS {"type":"passcode","code":"0070"}
-
-    def check_code(self,passcode):
-        try:
-            # Validate passcode against the 'code' collection
-            remotedb = self.remoteMongo('mongodb://%s:%s@%s:%s' % (self.username, self.password,self.server,self.port), tls=self.tls)
-            count = remotedb.ELET2415.code.count_documents({'code': passcode})
-        except Exception as e:
-            msg = str(e)
-            print("checkPwd Error: ", msg)
-        else:
-            return count
 
 
    
@@ -147,5 +150,3 @@ if __name__ == '__main__':
 
 
     
-
-

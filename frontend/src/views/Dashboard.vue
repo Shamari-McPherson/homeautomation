@@ -346,7 +346,7 @@ const updateGauge = async () => {
       waterReserveGraph.value.series[0].points[0].update(parseFloat(data.reserve.toFixed(2)));}    
 
       console.log(data.percentage);
-      if (data.percentage >=100 || data.percentage < 2) {
+      if (data.percentage >100 || data.percentage < 2) {
         overflowDialog.value = true;
         } else {
             overflowDialog.value = false;

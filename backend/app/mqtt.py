@@ -32,14 +32,14 @@ class MQTT:
         self.client.on_disconnect   = self.on_disconnect
         self.client.on_subscribe    = self.on_subscribe
 
+
         # REGISTER CALLBACK FUNCTION FOR EACH TOPIC
         self.client.message_callback_add("620152241", self.update)
         self.client.message_callback_add("620152241_pub", self.toggle)
         self.client.message_callback_add("620152241_sub", self.toggle)
 
-
         # ADD MQTT SERVER AND PORT INFORMATION BELOW
-        self.client.connect_async("www.yanacreations.com", 1883, 60)
+        self.client.connect_async("dbs.msjrealtms.com", 1883, 60)
        
 
 
@@ -86,25 +86,26 @@ class MQTT:
         try:
             topic   = msg.topic
             payload = msg.payload.decode("utf-8")
-            # print(payload) # UNCOMMENT WHEN DEBUGGING  
+            print(payload) # UNCOMMENT WHEN DEBUGGING  
             
             update  = loads(payload) # CONVERT FROM JSON STRING TO JSON OBJECT  
-            print(update) 
+            self.mongo.addUpdate(update) # INSERT INTO DATABASE 
 
         except Exception as e:
-            print(f"MQTT: GDP Error: {str(e)}")
+            print(f"MQTT: Update Error: {str(e)}")
 
-    def toggle(self,client, userdata, msg):    
-        '''Process messages from Frontend'''
+    def toggle(self, client, userdata, msg):
         try:
             topic   = msg.topic
             payload = msg.payload.decode("utf-8")
-            # print(payload) # UNCOMMENT WHEN DEBUGGING
-            update  = loads(payload) # CONVERT FROM JSON STRING TO JSON OBJECT              
-            print(update)
+            print(payload) # UNCOMMENT WHEN DEBUGGING  
+            
+            update  = loads(payload) # CONVERT FROM JSON STRING TO JSON OBJECT  
+            #self.mongo.addUpdate(update) # INSERT INTO DATABASE 
 
         except Exception as e:
-            print(f"MQTT: toggle Error - {str(e)}")
+            print(f"MQTT: Update Error: {str(e)}") 
+
+
 
      
-
